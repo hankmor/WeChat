@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="dendy.mapper.WeChatMapper">
+    <!-- 关联微信账号和平台账号 -->
+    <insert id="contactWechat" parameterType="dendy.domain.WechatUserBind">
+        INSERT INTO wechat_user(
+        openid,
+        wechat_url_token,
+        subscribe,
+        nickname,
+        sex,
+        language,
+        city,
+        province,
+        country,
+        headimgurl,
+        subscribe_time,
+        user_id,
+        wechat_bind_time
+        )
+        VALUES(
+        #{openid},
+        #{wechat_url_token},
+        #{subscribe},
+        #{nickname},
+        #{sex},
+        #{language},
+        #{city},
+        #{province},
+        #{country},
+        #{headimgurl},
+        #{subscribe_time},
+        #{user_id},
+        NOW()
+        )
+        <selectKey resultType="java.lang.String" order="AFTER" keyProperty="openid">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+    </insert>
+
+    <!-- 解绑关联微信账号和平台账号 -->
+    <update id="unContactWechat">
+        UPDATE
+        wechat_user
+        SET
+        subscribe = '0'
+        WHERE
+        openid = #{openid}
+    </update>
+
+    <!-- 查询绑定 -->
+    <select id="findBindByOpenId" resultType="dendy.domain.WechatUserBind">
+		SELECT CAST(wu.nickname AS CHAR) AS nickname,wu.* FROM wechat_user wu WHERE wu.openid = #{openId}
+	</select>
+    <!-- 查询用户微信根据user_id 查询绑定 -->
+    <select id="findBindByUserId" resultType="dendy.domain.WechatUserBind">
+        SELECT CAST(wu.nickname AS CHAR) AS nickname,wu.* FROM wechat_user wu WHERE wu.user_id = #{user_id}
+    </select>
+    <!-- 根据url token 查询绑定信息 -->
+    <select id="findBindByUrlToken" resultType="dendy.domain.WechatUserBind">
+        SELECT CAST(wu.nickname AS CHAR) AS nickname,wu.* FROM wechat_user wu WHERE wu.wechat_url_token = #{token}
+    </select>
+
+    <!-- 修改绑定信息 -->
+    <select id="updateBind" parameterType="dendy.domain.WechatUserBind">
+        UPDATE
+        wechat_user
+        SET
+        wechat_url_token = #{wechat_url_token},
+        subscribe = #{subscribe},
+        nickname = #{nickname},
+        sex = #{sex},
+        language = #{language},
+        city = #{city},
+        province = #{province},
+        country = #{country},
+        headimgurl= #{headimgurl},
+        subscribe_time = #{subscribe_time},
+        user_id = #{user_id},
+        wechat_bind_time= #{wechat_bind_time}
+        WHERE
+        openid = #{openid}
+    </select>
+    <!-- 创建新的菜单信息-->
+    <insert id="createMenu" parameterType="dendy.domain.menu.WeChatMenu" useGeneratedKeys="true"
+            keyProperty="menu_id">
+        INSERT INTO wechat_menu(
+        menu_key,
+        menu_type,
+        menu_parent,
+        menu_name,
+        menu_url,
+        menu_enable,
+        menu_idx
+        )
+        VALUES(
+        #{menu_key},
+        #{menu_type},
+        #{menu_parent},
+        #{menu_name},
+        #{menu_url},
+        #{menu_enable},
+        #{menu_idx}
+        )
+        <selectKey resultType="long" order="AFTER" keyProperty="menu_id">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+    </insert>
+
+    <!-- 查询所有可用的菜单信息 -->
+    <select id="findAllMenuEnable" resultType="dendy.domain.menu.WeChatMenu">
+        SELECT
+        *
+        FROM
+        wechat_menu wm
+        WHERE
+        1=1
+        <if test="menu_enable != null">
+            AND
+            wm.menu_enable = #{menu_enable}
+        </if>
+        ORDER BY wm.menu_parent ASC,wm.menu_idx ASC
+    </select>
+
+    <!-- 关键字表操作 新增 -->
+    <insert id="createKeyWords" parameterType="dendy.domain.WeChatKeyWords"
+            useGeneratedKeys="true" keyProperty="wc_id">
+        INSERT INTO
+        wechat_key_value (
+        wc_key_num,
+        wc_key_cn,
+        wc_key_content,
+        wc_key_enable
+        )
+        VALUES(
+        #{wc_key_num},
+        #{wc_key_cn},
+        #{wc_key_content},
+        #{wc_key_enable}
+        )
+        <selectKey resultType="long" order="AFTER" keyProperty="wc_id">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+    </insert>
+
+    <!-- 关键字表操作 删除-->
+    <delete id="deleteKeyWords">
+        DELETE FROM wechat_key_value WHERE wc_id = #{wc_id}
+    </delete>
+
+    <!-- 关键字表操作  查询 数字key -->
+    <select id="findKeyWordsByKey" resultType="dendy.domain.WeChatKeyWords">
+        SELECT * FROM wechat_key_value wkv WHERE wkv.wc_key_num = #{wc_key_num}
+    </select>
+
+    <!-- 关键字表操作 查询 中文key -->
+    <select id="findKeyWordsByCN" resultType="dendy.domain.WeChatKeyWords">
+        SELECT
+        *
+        FROM
+        wechat_key_value wkv
+        WHERE
+        wkv.wc_key_cn LIKE '%${wc_key_cn}%'
+    </select>
+    <!-- 查询所有的可用的keywords -->
+    <select id="findKeyWordsAll" resultType="dendy.domain.WeChatKeyWords">
+        SELECT * FROM wechat_key_value wk WHERE wk.wc_key_enable = 'Y'
+    </select>
+
+    <!-- 根据内容模糊匹配权重最高的数据 -->
+    <select id="findMatching" resultType="dendy.domain.WeChatKeyWords">
+        SELECT wkv.* FROM
+        (
+        SELECT wk.wc_id,COUNT(*) AS num FROM wechat_key wk
+        WHERE
+        #{content} LIKE CONCAT('%',wk.key_cn,'%')
+        OR
+        wk.key_cn LIKE CONCAT('%',#{content},'%')
+        GROUP BY wk.wc_id
+        ORDER BY num DESC
+        LIMIT 0,1
+        ) tmp
+        LEFT JOIN wechat_key_value wkv ON wkv.wc_id = tmp.wc_id
+    </select>
+
+    <!-- 微信媒体材料本地对应创建 -->
+    <insert id="createMediaMaterial" parameterType="dendy.domain.WeChatMediaMaterial"
+            useGeneratedKeys="true" keyProperty="mt_id">
+        INSERT INTO wechat_material (
+        mt_type,
+        mt_url_local,
+        mt_media_id,
+        mt_upload_time,
+        mt_video_title,
+        mt_video_desc
+        )
+        VALUES(
+        #{mt_type},
+        #{mt_url_local},
+        #{mt_media_id},
+        #{mt_upload_time},
+        #{mt_video_title},
+        #{mt_video_desc}
+        )
+        <selectKey resultType="long" order="AFTER" keyProperty="mt_id">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+    </insert>
+    <!-- 删除素材记录 -->
+    <delete id="deleteMediaMaterial">
+        DELETE FROM wechat_material WHERE mt_id = ${mt_id}
+    </delete>
+    <!-- 更新微信素材 -->
+    <update id="updateMediaMaterial" parameterType="dendy.domain.WeChatMediaMaterial">
+        UPDATE wechat_material
+        SET
+        mt_type = #{mt_type},
+        mt_url_local = #{mt_url_local},
+        mt_media_id = #{mt_media_id},
+        mt_upload_time = #{mt_upload_time},
+        mt_video_title = #{mt_video_title},
+        mt_video_desc = #{mt_video_desc}
+        )
+        WHERE mt_id = #{mt_id}
+    </update>
+    <!-- 根据微信官方媒体ID查找素材 -->
+    <select id="findMediaMaterialByMediaId" resultType="dendy.domain.WeChatMediaMaterial">
+		SELECT 
+			* 
+		FROM 
+			wechat_material wm 
+		WHERE 
+			wm.mt_media_id = #{mt_media_id}
+	</select>
+    <!-- 根据系统对应Id 查找媒体文件 -->
+    <select id="findMediaMaterialByMtId" resultType="dendy.domain.WeChatMediaMaterial">
+        SELECT
+        *
+        FROM
+        wechat_material wm
+        WHERE
+        wm.mt_id = #{mt_id}
+    </select>
+
+    <select id="findSpecItemVal" resultType="java.lang.String" parameterType="java.lang.String">
+		SELECT wsc.val FROM wechat_spec_content wsc WHERE wsc.key_item = #{key}
+	</select>
+</mapper>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<menus>
+    <!-- 我要提现 -->
+    <!--<menu ID="cash" class="com.brp2p.utils.wechat.handle.MenuHandle" method="cash"/>-->
+</menus>

@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+    <property name="baseDir" value="./logs"/>
+    <property name="APP_NAME" value="ccpt"/>
+    <!-- Configuration context name -->
+    <contextName>${APP_NAME}</contextName>
+    <!-- 控制台日志文件 -->
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder charset="UTF-8">
+            <pattern>
+                %d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{35} [%file:%line] -%msg%n%ex{full}
+            </pattern>
+        </encoder>
+    </appender>
+
+    <!-- 滚动日志文件 -->
+    <appender name="rollingFile"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <Encoding>UTF-8</Encoding>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${baseDir}/log-%d{yyyy-MM-dd}-%i.log.zip
+            </fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <TimeBasedFileNamingAndTriggeringPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <MaxFileSize>5MB</MaxFileSize>
+            </TimeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{35}
+                [%file:%line] -%msg%n%ex{full}
+            </pattern>
+        </encoder>
+    </appender>
+
+    <root>
+        <level value="ERROR"/>
+        <appender-ref ref="stdout"/>
+        <appender-ref ref="rollingFile"/>
+    </root>
+
+    <!-- 日志级别定义 -->
+    <logger name="org.mybatis" level="ERROR"/>
+    <logger name="org.springframework" level="ERROR"/>
+    <logger name="org.apache" level="ERROR"/>
+
+    <logger name="dendy">
+        <level value="debug"/>
+        <appender-ref ref="rollingFile"/>
+    </logger>
+</configuration>
